@@ -16,8 +16,6 @@ class ViewController: UITableViewController {
     //managed object context -- here we save created objects
     private let managedContext = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
-    
-
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -136,5 +134,22 @@ extension ViewController {
         cell.textLabel?.text = task.name
         
         return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, editingStyleForRowAt indexPath: IndexPath) -> UITableViewCell.EditingStyle {
+        return .delete
+    }
+    
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            let deletedTask = tasks.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .fade)
+            managedContext.delete(deletedTask as NSManagedObject)
+            do {
+            try managedContext.save()
+            } catch let error {
+                print(error.localizedDescription)
+            }
+        }
     }
 }
