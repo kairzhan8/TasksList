@@ -63,12 +63,28 @@ class ViewController: UITableViewController {
             action: #selector(addNewTask))
         //font color
         navigationController?.navigationBar.tintColor = .white
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: "Edit",
+            style: .plain,
+            target: self,
+            action: #selector(edit))
     }
     
     @objc private func addNewTask() {
         showAlert(title: "New task", message: "What do you want to do?")
     }
     
+    @objc private func edit() {
+        if tableView.isEditing {
+            tableView.isEditing = false
+            navigationItem.rightBarButtonItem?.isEnabled = true
+            navigationItem.leftBarButtonItem?.title = "Edit"
+        } else {
+            tableView.isEditing = true
+            navigationItem.rightBarButtonItem?.isEnabled = false
+            navigationItem.leftBarButtonItem?.title = "Done"
+        }
+    }
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
@@ -119,6 +135,10 @@ class ViewController: UITableViewController {
             print(error.localizedDescription)
         }
     }
+    
+    private func update(_ updatedTask: String) {
+        
+    }
         
 }
 
@@ -152,4 +172,56 @@ extension ViewController {
             }
         }
     }
+    
+    override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
+        return true
+    }
+    
+    override func tableView(_ tableView: UITableView, moveRowAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+        tasks.swapAt(sourceIndexPath.row, destinationIndexPath.row)
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        
+        //entity name
+        guard let entityDescription = NSEntityDescription.entity(forEntityName: "Task", in: managedContext) else { return }
+        //model instance
+        let task = NSManagedObject(entity: entityDescription, insertInto: managedContext) as! Task
+        
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+        guard let cell = tableView.cellForRow(at: indexPath) else { return }
+        
+        guard let taskk = cell.textLabel?.text else { return }
+        
+        let alert = UIAlertController(title: "Edit task", message: "Edit your task", preferredStyle: .alert)
+        alert.addTextField { (textField) in
+            textField.text = taskk
+        }
+        let saveAction = UIAlertAction(title: "Save", style: .default) { _ in
+            guard let updatedTask = alert.textFields?.first!.text else { return }
+            task.name = updatedTask
+            print(updatedTask)
+            do {
+                let currentTask = self.tasks.remove(at: indexPath.row)
+                self.managedContext.delete(currentTask as NSManagedObject)
+                self.tasks.insert(task, at: indexPath.row)
+                try self.managedContext.save()
+            } catch let error {
+                print(error.localizedDescription)
+            }
+            tableView.reloadData()
+        }
+        let cancelAction = UIAlertAction(title: "Cancel", style: .destructive)
+        
+        alert.addAction(saveAction)
+        alert.addAction(cancelAction)
+        present(alert, animated: true, completion: nil)
+        
+        
+    }
+    
+//    override func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
+//        tableView.deselectRow(at: indexPath, animated: true)
+//    }
 }
